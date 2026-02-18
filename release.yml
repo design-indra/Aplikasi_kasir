@@ -1,0 +1,21 @@
+name: Build APK Holis
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 # Update ke v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0' # Versi stabil terbaru
+          channel: 'stable'
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - name: Upload APK
+        uses: actions/upload-artifact@v4 # WAJIB v4 sesuai pengumuman GitHub
+        with:
+          name: aplikasi-kasir-holis
+          path: build/app/outputs/flutter-apk/app-release.apk
