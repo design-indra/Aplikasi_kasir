@@ -8,7 +8,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('kasir_super.db');
+    _database = await _initDB('kasir_final.db');
     return _database!;
   }
 
@@ -19,38 +19,36 @@ class DatabaseHelper {
   }
 
   Future _createDB(Database db, int version) async {
-    await db.execute('CREATE TABLE produk (id INTEGER PRIMARY KEY AUTOINCREMENT, nama TEXT, harga REAL, stok INTEGER, kategori TEXT, barcode TEXT)');
-    await db.execute('CREATE TABLE penjualan (id INTEGER PRIMARY KEY AUTOINCREMENT, total REAL, tanggal TEXT, metode TEXT)');
+    await db.execute('''CREATE TABLE produk (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, 
+      nama TEXT, harga REAL, stok INTEGER, kategori TEXT)''');
+    await db.execute('''CREATE TABLE penjualan (
+      id INTEGER PRIMARY KEY AUTOINCREMENT, 
+      total REAL, tanggal TEXT, metode TEXT, diskon REAL)''');
   }
 
-  // Tambah Produk
   Future<int> tambahProduk(Map<String, dynamic> row) async {
     final db = await instance.database;
     return await db.insert('produk', row);
   }
 
-  // Ambil Semua Produk
   Future<List<Map<String, dynamic>>> ambilSemuaProduk() async {
     final db = await instance.database;
-    return await db.query('produk');
+    return await db.query('produk', orderBy: 'nama ASC');
   }
 
-  // Transaksi & Kurangi Stok Otomatis
-  Future simpanTransaksi(double total, String metode, List<Map<String, dynamic>> items) async {
+  Future<int> hapusProduk(int id) async {
     final db = await instance.database;
-    await db.transaction((txn) async {
-      // Simpan data penjualan
-      await txn.insert('penjualan', {
-        'total': total,
-        'tanggal': DateTime.now().toString().substring(0, 10),
-        'metode': metode
-      });
-      // Kurangi stok masing-masing barang (simulasi)
-      for (var item in items) {
-        await txn.rawUpdate(
-          'UPDATE produk SET stok = stok - 1 WHERE id = ?', [item['id']]
-        );
-      }
+    return await db.delete('produk', where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> simpanTransaksi(double total, String metode, double diskon) async {
+    final db = await instance.database;
+    return await db.insert('penjualan', {
+      'total': total,
+      'metode': metode,
+      'diskon': diskon,
+      'tanggal': DateTime.now().toString().substring(0, 16)
     });
   }
 
