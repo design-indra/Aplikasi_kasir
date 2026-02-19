@@ -1,7 +1,6 @@
 name: aplikasi_kasir
-description: "Aplikasi Kasir Muhamad Holis"
+description: "Aplikasi Kasir Super Pro Muhamad Holis"
 publish_to: 'none'
-
 version: 1.0.0+1
 
 environment:
@@ -13,6 +12,11 @@ dependencies:
   cupertino_icons: ^1.0.6
   sqflite: ^2.3.0
   path: ^1.8.3
+  intl: ^0.18.1
+  mobile_scanner: ^3.2.0    # Untuk Scan Barcode
+  pdf: ^3.10.3              # Untuk Buat PDF
+  printing: ^5.11.0         # Untuk Cetak Struk
+  fl_chart: ^0.63.0         # Untuk Grafik Penjualan
 
 dev_dependencies:
   flutter_test:
