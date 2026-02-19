@@ -1,132 +1,139 @@
 import 'package:flutter/material.dart';
-import 'database_helper.dart'; // Menghubungkan ke brankas data
+import 'database_helper.dart';
 
 void main() => runApp(MaterialApp(
-      home: KasirHolisHome(),
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.indigo),
-    ));
+  debugShowCheckedModeBanner: false,
+  theme: ThemeData(primarySwatch: Colors.deepPurple),
+  home: LoginPage(), // Aplikasi dimulai dari halaman Login
+));
 
-// --- HALAMAN UTAMA (DAFTAR STOK) ---
-class KasirHolisHome extends StatefulWidget {
+// --- HALAMAN LOGIN ---
+class LoginPage extends StatefulWidget {
   @override
-  _KasirHolisHomeState createState() => _KasirHolisHomeState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _KasirHolisHomeState extends State<KasirHolisHome> {
-  List<Map<String, dynamic>> _daftarProduk = [];
+class _LoginPageState extends State<LoginPage> {
+  final userCtrl = TextEditingController();
+  final passCtrl = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    _muatData(); // Ambil data saat aplikasi dibuka
-  }
+  void _login() {
+    String user = userCtrl.text;
+    String pass = passCtrl.text;
 
-  // Fungsi untuk mengambil data dari Database
-  Future<void> _muatData() async {
-    final data = await DatabaseHelper.instance.ambilSemuaProduk();
-    setState(() {
-      _daftarProduk = data;
-    });
+    if (user == 'admin' && pass == '123') {
+      // Login sebagai Owner
+      Navigator.pushReplacement(context, MaterialPageRoute(
+        builder: (c) => DashboardPage(role: 'Owner')
+      ));
+    } else if (user == 'kasir' && pass == '000') {
+      // Login sebagai Kasir
+      Navigator.pushReplacement(context, MaterialPageRoute(
+        builder: (c) => DashboardPage(role: 'Kasir')
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Username atau Password Salah!")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Kasir Pro - Muhamad Holis")),
+      backgroundColor: Colors.deepPurple[50],
+      body: Center(
+        child: Padding(
+          padding: EdgeInsets.all(30),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock, size: 80, color: Colors.deepPurple),
+              SizedBox(height: 20),
+              Text("LOGIN KASIR HOLIS", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              SizedBox(height: 30),
+              TextField(controller: userCtrl, decoration: InputDecoration(labelText: "Username", border: OutlineInputBorder())),
+              SizedBox(height: 15),
+              TextField(controller: passCtrl, decoration: InputDecoration(labelText: "Password", border: OutlineInputBorder()), obscureText: true),
+              SizedBox(height: 25),
+              ElevatedButton(
+                onPressed: _login,
+                child: Text("MASUK"),
+                style: ElevatedButton.styleFrom(minimumSize: Size(double.infinity, 50)),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- DASHBOARD DENGAN PEMBATASAN AKSES ---
+class DashboardPage extends StatelessWidget {
+  final String role;
+  DashboardPage({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Dashboard ($role)")),
       drawer: Drawer(
         child: ListView(
           children: [
             UserAccountsDrawerHeader(
               accountName: Text("Muhamad Holis"),
-              accountEmail: Text("Lead Developer"),
-              currentAccountPicture: CircleAvatar(backgroundColor: Colors.white, child: Text("MH")),
+              accountEmail: Text("Role: $role"),
+              currentAccountPicture: CircleAvatar(child: Text(role[0])),
             ),
-            ListTile(leading: Icon(Icons.info), title: Text("Versi Aplikasi 1.0.0")),
+            // Menu Kasir (Bisa diakses semua role)
+            ListTile(
+              leading: Icon(Icons.shopping_cart),
+              title: Text("Kasir"),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => KasirPage())),
+            ),
+            
+            // Menu Khusus Owner (Disembunyikan jika role bukan Owner)
+            if (role == 'Owner') ...[
+              Divider(),
+              ListTile(
+                leading: Icon(Icons.inventory),
+                title: Text("Manajemen Stok (Owner Only)"),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => ProdukPage())),
+              ),
+              ListTile(
+                leading: Icon(Icons.bar_chart),
+                title: Text("Laporan Keuangan (Owner Only)"),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => LaporanPage())),
+              ),
+            ],
+            
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text("Keluar"),
+              onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (c) => LoginPage())),
+            ),
           ],
         ),
       ),
-      body: _daftarProduk.isEmpty
-          ? Center(child: Text("Belum ada produk. Tambahkan di tombol +"))
-          : ListView.builder(
-              itemCount: _daftarProduk.length,
-              itemBuilder: (context, index) => Card(
-                margin: EdgeInsets.all(8),
-                child: ListTile(
-                  title: Text(_daftarProduk[index]['nama'], style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Harga: Rp ${_daftarProduk[index]['harga']} | Stok: ${_daftarProduk[index]['stok']}"),
-                ),
-              ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () async {
-          // Pindah ke halaman tambah, lalu muat ulang data saat kembali
-          await Navigator.push(context, MaterialPageRoute(builder: (context) => HalamanTambahHolis()));
-          _muatData();
-        },
-      ),
-    );
-  }
-}
-
-// --- HALAMAN TAMBAH PRODUK ---
-class HalamanTambahHolis extends StatefulWidget {
-  @override
-  _HalamanTambahHolisState createState() => _HalamanTambahHolisState();
-}
-
-class _HalamanTambahHolisState extends State<HalamanTambahHolis> {
-  // Controller untuk menangkap ketikan Holis
-  final TextEditingController _namaController = TextEditingController();
-  final TextEditingController _hargaController = TextEditingController();
-  final TextEditingController _stokController = TextEditingController();
-
-  Future<void> _simpanKeDatabase() async {
-    if (_namaController.text.isEmpty || _hargaController.text.isEmpty || _stokController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Mohon isi semua kolom!")));
-      return;
-    }
-
-    // Memasukkan data ke Database (Brankas)
-    await DatabaseHelper.instance.tambahProduk({
-      'nama': _namaController.text,
-      'harga': int.parse(_hargaController.text),
-      'stok': int.parse(_stokController.text),
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Produk ${_namaController.text} Berhasil Disimpan!")),
-    );
-
-    Navigator.pop(context); // Kembali ke halaman utama
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("Tambah Produk Baru")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(controller: _namaController, decoration: InputDecoration(labelText: "Nama Barang")),
-            TextField(controller: _hargaController, decoration: InputDecoration(labelText: "Harga"), keyboardType: TextInputType.number),
-            TextField(controller: _stokController, decoration: InputDecoration(labelText: "Stok"), keyboardType: TextInputType.number),
-            SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _simpanKeDatabase, // Ini proses "Menghubungkan Tombol"
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 15),
-                child: Center(child: Text("SIMPAN DATA")),
-              ),
-            ),
-            SizedBox(height: 20),
-            Text("Dikembangkan oleh: Muhamad Holis", style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text("Selamat Datang, $role!", style: TextStyle(fontSize: 20)),
+            if (role == 'Kasir') Padding(
+              padding: EdgeInsets.all(20),
+              child: Text("Gunakan menu Kasir untuk transaksi.", textAlign: TextAlign.center),
+            )
           ],
         ),
       ),
     );
   }
 }
+
+// Tambahkan KasirPage, ProdukPage, dan LaporanPage di bawah sini (gunakan kode sebelumnya)
+class KasirPage extends StatelessWidget { @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text("Kasir"))); }
+class ProdukPage extends StatelessWidget { @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text("Stok"))); }
+class LaporanPage extends StatelessWidget { @override Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: Text("Laporan"))); }
